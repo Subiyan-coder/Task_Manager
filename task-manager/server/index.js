@@ -20,6 +20,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 
+app.use('/api/tasks', require('./routes/taskRoutes'));
+
 // A simple test route
 app.get('/', (req, res) => {
   res.send('Task Management API is running!');
