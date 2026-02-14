@@ -1,0 +1,13 @@
+{
+  "name": "Priya Manager",
+  "email": "priya@test.com",
+  "password": "password123",
+  "role": "Superior"
+}
+
+{
+  "name": "Arun Kumar",
+  "email": "arun@test.com",
+  "password": "password123",
+  "role": "Team Member"
+}

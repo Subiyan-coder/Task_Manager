@@ -1,15 +1,47 @@
 import { useState } from 'react';
-import { Container, Form, Button, Card } from 'react-bootstrap';
+import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom'; // Import navigation hook
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(''); // State to handle error messages
+  const navigate = useNavigate();
 
-  const submitHandler = (e) => {
+  const submitHandler = async (e) => {
     e.preventDefault();
-    // For now, we will just log it to make sure the form works.
-    // Next, we will send this to our Node.js backend!
-    console.log('Login attempt:', email, password);
+    setError(''); // Clear previous errors
+
+    try {
+      // 1. Send the data to the backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 2. SUCCESS: Save the token and user info
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data));
+        
+        console.log('Login Successful:', data);
+        alert("Login Successful!"); // Temporary success check
+        
+        // 3. Redirect (We'll build the dashboard next)
+        navigate('/dashboard'); 
+      } else {
+        // 4. FAIL: Show the error message from backend
+        setError(data.message || 'Login failed');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Something went wrong. Please try again.');
+    }
   };
 
   return (
@@ -17,6 +49,10 @@ const Login = () => {
       <Card className="shadow p-4" style={{ width: '25rem' }}>
         <Card.Body>
           <h2 className="text-center mb-4">Sign In</h2>
+          
+          {/* Show error message if login fails */}
+          {error && <Alert variant="danger">{error}</Alert>}
+
           <Form onSubmit={submitHandler}>
             <Form.Group className="mb-3" controlId="email">
               <Form.Label>Email Address</Form.Label>

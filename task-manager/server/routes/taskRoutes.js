@@ -3,16 +3,16 @@ const router = express.Router();
 const { createTask, getTasks, updateTask, deleteTask } = require('../controllers/taskController');
 const { protect, superiorOnly } = require('../middleware/authMiddleware');
 
-// Route for getting tasks
+// 1. GET TASKS: Open to everyone (Controller filters what they see)
 router.get('/', protect, getTasks);
 
-// Route for creating a task
-router.post('/', protect, superiorOnly, createTask);
+// 2. CREATE TASK: Open to everyone (Controller forces Arun to assign to self)
+router.post('/', protect, createTask);
 
-// Route for updating a task (Requires the task ID in the URL)
-router.put('/:id', protect, superiorOnly, updateTask);
+// 3. UPDATE TASK: Open to everyone (We will fix the logic next so Arun can only update status)
+router.put('/:id', protect, updateTask);
 
-// Route for deleting a task (Requires the task ID in the URL)
+// 4. DELETE TASK: STRICTLY Superior Only (Arun cannot delete)
 router.delete('/:id', protect, superiorOnly, deleteTask);
 
 module.exports = router;

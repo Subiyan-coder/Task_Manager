@@ -1,17 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const connectDB = require('./config/db');
 
 // Load the secret variables
 dotenv.config();
-
-const connectDB = require('./config/db');
 
 // Connect to the database
 connectDB();
 
 // Initialize the Express app
 const app = express();
+
+app.use(cors()); 
+app.use(express.json());
 
 // Middleware (Allows your frontend to talk to your backend safely)
 app.use(cors());

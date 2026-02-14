@@ -75,4 +75,24 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+// @desc    Get current user data
+// @route   GET /api/auth/me
+// @access  Private
+const getMe = async (req, res) => {
+  res.status(200).json(req.user);
+};
+
+// @desc    Get all users (for assignment)
+// @route   GET /api/users
+// @access  Private
+
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); // Return everything except the password
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, getMe, getAllUsers };

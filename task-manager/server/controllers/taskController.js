@@ -2,38 +2,57 @@ const Task = require('../models/Task');
 
 // @desc    Create a new task
 // @route   POST /api/tasks
-// @access  Private (Superior Only)
+// @access  Private
 const createTask = async (req, res) => {
   try {
-    const { title, description, priority, assignedTo } = req.body;
+    const { title, description, assignedTo } = req.body; // assignedTo can now be an Array or Empty
+
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Please add a title and description' });
+    }
+
+    // Logic: Who is this task for?
+    let taskAssignments = [];
+
+    if (req.user.role === 'Superior') {
+      // If Superior, use the list they sent. If they sent nothing, default to empty.
+      // We ensure it's an array even if they send just one ID string.
+      taskAssignments = Array.isArray(assignedTo) ? assignedTo : (assignedTo ? [assignedTo] : []);
+    } else {
+      // If Team Member, FORCE assignment to themselves only.
+      taskAssignments = [req.user.id];
+    }
 
     const task = await Task.create({
       title,
       description,
-      priority,
-      assignedTo,
-      createdBy: req.user.id, // We get this from the 'protect' middleware!
+      assignedTo: taskAssignments, // Save the list
+      createdBy: req.user.id,
     });
 
     res.status(201).json(task);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 };
 
 // @desc    Get tasks
 // @route   GET /api/tasks
-// @access  Private (Both Roles)
+// @access  Private
 const getTasks = async (req, res) => {
   try {
     let tasks;
-    
+
     if (req.user.role === 'Superior') {
-      // Superiors see tasks they created
-      tasks = await Task.find({ createdBy: req.user.id }).populate('assignedTo', 'name email');
+      // Superior sees ALL tasks (and who they are assigned to)
+      tasks = await Task.find()
+        .populate('assignedTo', 'name email') // Show names, not just IDs
+        .sort({ createdAt: -1 }); // Newest first
     } else {
-      // Team Members only see tasks assigned to them
-      tasks = await Task.find({ assignedTo: req.user.id }).populate('createdBy', 'name email');
+      // Team Member sees only tasks assigned to them
+      tasks = await Task.find({ assignedTo: { $in: [req.user.id] } })
+        .populate('assignedTo', 'name email')
+        .sort({ createdAt: -1 });
     }
 
     res.status(200).json(tasks);
