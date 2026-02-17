@@ -1,41 +1,37 @@
 const Task = require('../models/Task');
+const User = require('../models/User'); // Import User to check roles
 
 // @desc    Create a new task
 // @route   POST /api/tasks
 // @access  Private
 const createTask = async (req, res) => {
   try {
-    const { title, description, assignedTo } = req.body; // assignedTo can now be an Array or Empty
+    const { title, description, assignedTo } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ message: 'Please add a title and description' });
     }
 
-    // Check if a Pending task with this exact title already exists
+    // DUPLICATE CHECK
     const existingTask = await Task.findOne({ title: title, status: 'Pending' });
-    
     if (existingTask) {
-      return res.status(400).json({ 
-        message: 'A task with this title is already pending! Please use a different title or edit the existing one.' 
-      });
+      return res.status(400).json({ message: 'A task with this title is already pending!' });
     }
-    
+
     // Logic: Who is this task for?
     let taskAssignments = [];
-
     if (req.user.role === 'Superior') {
-      // If Superior, use the list they sent. If they sent nothing, default to empty.
-      // We ensure it's an array even if they send just one ID string.
+      // Superior can assign to list
       taskAssignments = Array.isArray(assignedTo) ? assignedTo : (assignedTo ? [assignedTo] : []);
     } else {
-      // If Team Member, FORCE assignment to themselves only.
+      // Team Member forces assignment to self
       taskAssignments = [req.user.id];
     }
 
     const task = await Task.create({
       title,
       description,
-      assignedTo: taskAssignments, // Save the list
+      assignedTo: taskAssignments,
       createdBy: req.user.id,
     });
 
@@ -45,7 +41,7 @@ const createTask = async (req, res) => {
   }
 };
 
-// @desc    Get tasks
+// @desc    Get tasks (Filtered by Role Logic)
 // @route   GET /api/tasks
 // @access  Private
 const getTasks = async (req, res) => {
@@ -53,14 +49,28 @@ const getTasks = async (req, res) => {
     let tasks;
 
     if (req.user.role === 'Superior') {
-      // Superior sees ALL tasks (and who they are assigned to)
-      tasks = await Task.find()
-        .populate('assignedTo', 'name email') // Show names, not just IDs
-        .sort({ createdAt: -1 }); // Newest first
+      // RULE: Superior sees (1) Their own tasks OR (2) Tasks created by Team Members (Self-assigned)
+      // They do NOT see tasks created by other Superiors.
+      
+      // 1. Get IDs of all Team Members
+      const members = await User.find({ role: 'Team Member' }).select('_id');
+      const memberIds = members.map(m => m._id);
+
+      tasks = await Task.find({
+        $or: [
+            { createdBy: req.user.id },       // Created by ME
+            { createdBy: { $in: memberIds } } // Created by MEMBERS
+        ]
+      })
+      .populate('assignedTo', 'name email')
+      .populate('createdBy', 'name role') // <--- We need this for "Assigned By"
+      .sort({ createdAt: -1 });
+
     } else {
-      // Team Member sees only tasks assigned to them
+      // Team Member: Sees tasks assigned to them
       tasks = await Task.find({ assignedTo: { $in: [req.user.id] } })
         .populate('assignedTo', 'name email')
+        .populate('createdBy', 'name role') // <--- We need this for "Assigned By"
         .sort({ createdAt: -1 });
     }
 
@@ -70,42 +80,42 @@ const getTasks = async (req, res) => {
   }
 };
 
-// @desc    Update task (Superior: All fields | Member: Status only)
+// @desc    Update task
 // @route   PUT /api/tasks/:id
 // @access  Private
-
 const updateTask = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id).populate('createdBy'); // Need creator info
 
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // LOGIC: Who is trying to update?
+    // PERMISSION CHECK
     if (req.user.role === 'Superior') {
-      // Superior can update EVERYTHING
-      const updatedTask = await Task.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { returnDocument: 'after' }
-      );
-      return res.status(200).json(updatedTask);
+        // Superior can edit if: They created it OR A member created it
+        const isMyTask = task.createdBy._id.toString() === req.user.id;
+        const isMemberTask = task.createdBy.role === 'Team Member';
+
+        if (!isMyTask && !isMemberTask) {
+            return res.status(401).json({ message: 'Cannot edit tasks from other Superiors' });
+        }
+        
+        // Allowed to update everything
+        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        return res.status(200).json(updatedTask);
     } 
     
-    // If Team Member...
-    // 1. Check if they are actually assigned to this task
+    // Team Member Logic (Status Only)
     if (!task.assignedTo.includes(req.user.id)) {
-      return res.status(401).json({ message: 'Not authorized to update this task' });
+      return res.status(401).json({ message: 'Not authorized' });
     }
-
-    // 2. ONLY allow updating the 'status' field. Ignore title/description changes.
     if (req.body.status) {
       task.status = req.body.status;
       const updatedTask = await task.save();
       return res.status(200).json(updatedTask);
     } else {
-        return res.status(400).json({ message: 'Team members can only update task status.' });
+        return res.status(400).json({ message: 'Members can only update status' });
     }
 
   } catch (error) {
@@ -113,24 +123,33 @@ const updateTask = async (req, res) => {
   }
 };
 
-// @desc    Delete task (Superior OR Creator)
+// @desc    Delete task
 // @route   DELETE /api/tasks/:id
 // @access  Private
 const deleteTask = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id).populate('createdBy');
 
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    // PERMISSION CHECK
+    let allowed = false;
+    
+    if (req.user.role === 'Superior') {
+        // Allow if MY task or MEMBER task
+        if (task.createdBy._id.toString() === req.user.id || task.createdBy.role === 'Team Member') {
+            allowed = true;
+        }
+    } else {
+        // Allow if I created it (Self-assigned)
+        if (task.createdBy._id.toString() === req.user.id) {
+            allowed = true;
+        }
     }
 
-    // CHECK: Is user a Superior OR did they create this task?
-    // We use .toString() because task.createdBy is an Object, and req.user.id is a String
-    if (req.user.role === 'Superior' || task.createdBy.toString() === req.user.id) {
-      
+    if (allowed) {
       await Task.findByIdAndDelete(req.params.id);
       return res.status(200).json({ id: req.params.id });
-
     } else {
       return res.status(401).json({ message: 'Not authorized to delete this task' });
     }
@@ -140,4 +159,9 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { createTask, getTasks, updateTask, deleteTask };
+module.exports = {
+  createTask,
+  getTasks,
+  updateTask,
+  deleteTask,
+};

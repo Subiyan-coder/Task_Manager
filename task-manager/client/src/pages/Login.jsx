@@ -6,12 +6,10 @@ import { useNavigate, Link } from 'react-router-dom';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // State to handle error messages
   const navigate = useNavigate();
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
 
     try {
       // 1. Send the data to the backend
@@ -36,52 +34,51 @@ const Login = () => {
         navigate('/dashboard'); 
       } else {
         // 4. FAIL: Show the error message from backend
-        setError(data.message || 'Login failed');
+        toast.error(data.message || "Invalid Email or Password");
       }
     } catch (err) {
       console.error(err);
-      setError('Something went wrong. Please try again.');
+      toast.error("Something went wrong.");
     }
   };
 
-  return (
+return (
     <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
-      <Card className="shadow p-4" style={{ width: '25rem' }}>
+      <Card className="shadow-lg p-4" style={{ width: '25rem' }}>
         <Card.Body>
-          <h2 className="text-center mb-4">Sign In</h2>
+          <h2 className="text-center mb-4">Welcome Back</h2>
           
-          {/* Show error message if login fails */}
-          {error && <Alert variant="danger">{error}</Alert>}
-
           <Form onSubmit={submitHandler}>
-            <Form.Group className="mb-3" controlId="email">
+            <Form.Group className="mb-3">
               <Form.Label>Email Address</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="Enter email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+              <Form.Control 
+                type="email" 
+                placeholder="Enter email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
               />
             </Form.Group>
 
-            <Form.Group className="mb-4" controlId="password">
+            <Form.Group className="mb-4">
               <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+              <Form.Control 
+                type="password" 
+                placeholder="Password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
               />
             </Form.Group>
 
-            <Button variant="primary" type="submit" className="w-100">
+            <Button variant="primary" type="submit" className="w-100 btn-lg shadow">
               Login
             </Button>
           </Form>
-          <div className="mt-3 text-center">
-             Don't have an account? <Link to="/register">Sign Up</Link>
+          
+          <div className="mt-4 text-center">
+             <span className="text-muted">Don't have an account? </span>
+             <Link to="/register" className="text-info fw-bold text-decoration-none">Sign Up</Link>
           </div>
         </Card.Body>
       </Card>

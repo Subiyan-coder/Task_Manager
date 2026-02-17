@@ -82,13 +82,15 @@ const getMe = async (req, res) => {
   res.status(200).json(req.user);
 };
 
-// @desc    Get all users (for assignment)
-// @route   GET /api/users
-// @access  Private
+// @desc    Get users for assignment (Only Team Members)
+// @route   GET /api/auth/users
+// @access  Private (Superior Only)
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password'); // Return everything except the password
+    // FILTER: Only fetch 'Team Member' roles. 
+    // Superiors should not assign tasks to other Superiors.
+    const users = await User.find({ role: 'Team Member' }).select('-password');
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
