@@ -13,6 +13,6 @@ router.post('/', protect, createTask);
 router.put('/:id', protect, updateTask);
 
 // 4. DELETE TASK: STRICTLY Superior Only (Arun cannot delete)
-router.delete('/:id', protect, superiorOnly, deleteTask);
+router.delete('/:id', protect,  deleteTask);
 
 module.exports = router;

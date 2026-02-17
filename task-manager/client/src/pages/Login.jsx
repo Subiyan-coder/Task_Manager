@@ -1,6 +1,7 @@
+import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom'; // Import navigation hook
+import { useNavigate, Link } from 'react-router-dom'; 
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -29,8 +30,7 @@ const Login = () => {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data));
         
-        console.log('Login Successful:', data);
-        alert("Login Successful!"); // Temporary success check
+        toast.success("Welcome back! Login Successful.");
         
         // 3. Redirect (We'll build the dashboard next)
         navigate('/dashboard'); 
@@ -80,6 +80,9 @@ const Login = () => {
               Login
             </Button>
           </Form>
+          <div className="mt-3 text-center">
+             Don't have an account? <Link to="/register">Sign Up</Link>
+          </div>
         </Card.Body>
       </Card>
     </Container>

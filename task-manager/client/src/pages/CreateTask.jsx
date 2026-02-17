@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const CreateTask = () => {
   const navigate = useNavigate();
@@ -61,13 +62,14 @@ const CreateTask = () => {
       });
 
       if (response.ok) {
-        alert('Task Created Successfully!');
+        toast.success("Task Created Successfully!");
         navigate('/dashboard');
       } else {
         const data = await response.json();
-        setError(data.message);
+        toast.error(data.message || "Failed to create task");
       }
     } catch (err) {
+      console.error("Error creating task:", err);
       setError('Something went wrong.');
     }
   };

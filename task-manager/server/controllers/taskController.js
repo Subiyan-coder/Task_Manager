@@ -11,6 +11,15 @@ const createTask = async (req, res) => {
       return res.status(400).json({ message: 'Please add a title and description' });
     }
 
+    // Check if a Pending task with this exact title already exists
+    const existingTask = await Task.findOne({ title: title, status: 'Pending' });
+    
+    if (existingTask) {
+      return res.status(400).json({ 
+        message: 'A task with this title is already pending! Please use a different title or edit the existing one.' 
+      });
+    }
+    
     // Logic: Who is this task for?
     let taskAssignments = [];
 
@@ -61,9 +70,10 @@ const getTasks = async (req, res) => {
   }
 };
 
-// @desc    Update a task
+// @desc    Update task (Superior: All fields | Member: Status only)
 // @route   PUT /api/tasks/:id
-// @access  Private (Superior Only)
+// @access  Private
+
 const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -72,24 +82,40 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Double-check that the superior updating the task is the one who created it
-    if (task.createdBy.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized to edit this task' });
+    // LOGIC: Who is trying to update?
+    if (req.user.role === 'Superior') {
+      // Superior can update EVERYTHING
+      const updatedTask = await Task.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { returnDocument: 'after' }
+      );
+      return res.status(200).json(updatedTask);
+    } 
+    
+    // If Team Member...
+    // 1. Check if they are actually assigned to this task
+    if (!task.assignedTo.includes(req.user.id)) {
+      return res.status(401).json({ message: 'Not authorized to update this task' });
     }
 
-    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
-      new: true, // Returns the updated document
-    });
+    // 2. ONLY allow updating the 'status' field. Ignore title/description changes.
+    if (req.body.status) {
+      task.status = req.body.status;
+      const updatedTask = await task.save();
+      return res.status(200).json(updatedTask);
+    } else {
+        return res.status(400).json({ message: 'Team members can only update task status.' });
+    }
 
-    res.status(200).json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Delete a task
+// @desc    Delete task (Superior OR Creator)
 // @route   DELETE /api/tasks/:id
-// @access  Private (Superior Only)
+// @access  Private
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -98,13 +124,17 @@ const deleteTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    if (task.createdBy.toString() !== req.user.id) {
+    // CHECK: Is user a Superior OR did they create this task?
+    // We use .toString() because task.createdBy is an Object, and req.user.id is a String
+    if (req.user.role === 'Superior' || task.createdBy.toString() === req.user.id) {
+      
+      await Task.findByIdAndDelete(req.params.id);
+      return res.status(200).json({ id: req.params.id });
+
+    } else {
       return res.status(401).json({ message: 'Not authorized to delete this task' });
     }
-
-    await task.deleteOne();
-
-    res.status(200).json({ id: req.params.id, message: 'Task deleted successfully' });
+    
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
