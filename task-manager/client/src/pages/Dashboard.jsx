@@ -35,7 +35,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('${BASE_URL}/api/tasks', {
+      const response = await fetch(`${BASE_URL}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -43,7 +43,7 @@ const Dashboard = () => {
       
       // If Superior, fetch users for the filter dropdown
       if (user?.role === 'Superior') {
-        const userRes = await fetch('${BASE_URL}/api/auth/users', {
+        const userRes = await fetch(`${BASE_URL}/api/auth/users`, {
             headers: { Authorization: `Bearer ${token}` },
         });
         if(userRes.ok) setAllUsers(await userRes.json());

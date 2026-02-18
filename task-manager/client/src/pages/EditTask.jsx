@@ -23,7 +23,7 @@ const EditTask = () => {
         
         // Fetch All Users (for the checklist)
         if (currentUser.role === 'Superior') {
-          const userRes = await fetch('${BASE_URL}/api/auth/users', {
+          const userRes = await fetch(`${BASE_URL}/api/auth/users`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const userData = await userRes.json();

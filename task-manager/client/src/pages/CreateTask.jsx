@@ -51,7 +51,7 @@ const CreateTask = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${BASE_URL}/api/tasks', {
+      const response = await fetch(`${BASE_URL}/api/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
