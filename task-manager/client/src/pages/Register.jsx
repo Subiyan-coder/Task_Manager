@@ -10,13 +10,14 @@ const Register = () => {
   const [role, setRole] = useState('Team Member'); // Default role
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  import BASE_URL from '../api';
 
   const submitHandler = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('${BASE_URL}/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, role }),

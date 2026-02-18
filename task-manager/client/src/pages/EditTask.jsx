@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Row, Col } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast'; // The Pop-up library
+import BASE_URL from '../api';
 
 const EditTask = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const EditTask = () => {
         
         // Fetch All Users (for the checklist)
         if (currentUser.role === 'Superior') {
-          const userRes = await fetch('http://localhost:5000/api/auth/users', {
+          const userRes = await fetch('${BASE_URL}/api/auth/users', {
             headers: { Authorization: `Bearer ${token}` },
           });
           const userData = await userRes.json();
@@ -30,7 +31,7 @@ const EditTask = () => {
         }
 
         // Fetch The Task Details
-        const taskRes = await fetch(`http://localhost:5000/api/tasks`, { // We fetch all and filter because we didn't make a single task route
+        const taskRes = await fetch(`${BASE_URL}/api/tasks`, { // We fetch all and filter because we didn't make a single task route
             headers: { Authorization: `Bearer ${token}` },
         });
         const taskData = await taskRes.json();
@@ -67,7 +68,7 @@ const EditTask = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+      const response = await fetch(`${BASE_URL}/api/tasks/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

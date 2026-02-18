@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom'; 
+import BASE_URL from '../api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,7 +14,7 @@ const Login = () => {
 
     try {
       // 1. Send the data to the backend
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('${BASE_URL}/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

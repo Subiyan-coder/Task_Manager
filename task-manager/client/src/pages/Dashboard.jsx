@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Container, Navbar, Nav, Button, Card, Row, Col, Badge, Modal, Form, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BASE_URL from '../api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/tasks', {
+      const response = await fetch('${BASE_URL}/api/tasks', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -42,7 +43,7 @@ const Dashboard = () => {
       
       // If Superior, fetch users for the filter dropdown
       if (user?.role === 'Superior') {
-        const userRes = await fetch('http://localhost:5000/api/auth/users', {
+        const userRes = await fetch('${BASE_URL}/api/auth/users', {
             headers: { Authorization: `Bearer ${token}` },
         });
         if(userRes.ok) setAllUsers(await userRes.json());
@@ -109,7 +110,7 @@ const Dashboard = () => {
   const updateStatus = async (taskId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+      await fetch(`${BASE_URL}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ const Dashboard = () => {
     if (!taskToDelete) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/tasks/${taskToDelete}`, {
+      const response = await fetch(`${BASE_URL}/api/tasks/${taskToDelete}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

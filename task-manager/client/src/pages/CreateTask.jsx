@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BASE_URL from '../api';
 
 const CreateTask = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const CreateTask = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/auth/users', {
+      const response = await fetch('${BASE_URL}/api/auth/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -47,7 +48,7 @@ const CreateTask = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/tasks', {
+      const response = await fetch('${BASE_URL}/api/tasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
