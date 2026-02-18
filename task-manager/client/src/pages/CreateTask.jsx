@@ -15,25 +15,28 @@ const CreateTask = () => {
   // Get current user info
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  useEffect(() => {
-    // If user is a Superior, fetch the list of team members
+
+    useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        // 2. Use BASE_URL here
+        const response = await fetch(`${BASE_URL}/api/auth/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setAllUsers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+
     if (currentUser && currentUser.role === 'Superior') {
       fetchUsers();
     }
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('${BASE_URL}/api/auth/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setAllUsers(data);
-    } catch (err) {
-      console.error("Failed to fetch users", err);
-    }
-  };
+  }, [currentUser]);
 
   const handleUserSelect = (userId) => {
     // Toggle logic: If in list, remove it. If not, add it.

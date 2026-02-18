@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import BASE_URL from '../api';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -10,7 +11,7 @@ const Register = () => {
   const [role, setRole] = useState('Team Member'); // Default role
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  import BASE_URL from '../api';
+
 
   const submitHandler = async (e) => {
     e.preventDefault();
