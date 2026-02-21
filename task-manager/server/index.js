@@ -19,6 +19,11 @@ app.use(express.json());
 app.use(cors());
 app.use(express.json());
 
+// --- KEEP ALIVE PING ROUTE ---
+app.get('/ping', (req, res) => {
+  res.status(200).json({ message: 'Server is awake!' });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 
