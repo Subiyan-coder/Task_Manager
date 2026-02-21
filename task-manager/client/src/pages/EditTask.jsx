@@ -22,7 +22,7 @@ const EditTask = () => {
         const token = localStorage.getItem('token');
         
         // Fetch All Users (for the checklist)
-        if (currentUser.role === 'Superior') {
+        if (currentUser.role === 'Superior' || currentUser.role === 'Admin') {
           const userRes = await fetch(`${BASE_URL}/api/auth/users`, {
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -77,7 +77,7 @@ const EditTask = () => {
         body: JSON.stringify({ 
           title, 
           description, 
-          assignedTo: currentUser.role === 'Superior' ? assignedUsers : undefined 
+          assignedTo: (currentUser.role === 'Superior' || currentUser.role === 'Admin') ? assignedUsers : undefined 
         }),
       });
 
@@ -101,7 +101,7 @@ const EditTask = () => {
       
       <Form onSubmit={updateHandler}>
         <Row>
-          <Col md={currentUser?.role === 'Superior' ? 8 : 12}>
+          <Col md={currentUser?.role === 'Superior' || currentUser?.role === 'Admin' ? 8 : 12}>
             <Card className="p-4 shadow-sm">
               <Form.Group className="mb-3">
                 <Form.Label>Task Title</Form.Label>
@@ -133,9 +133,19 @@ const EditTask = () => {
             </Card>
           </Col>
 
-          {currentUser?.role === 'Superior' && (
+          {(currentUser?.role === 'Superior' || currentUser?.role === 'Admin') && (
             <Col md={4}>
-              <Card className="p-3 shadow-sm bg-light h-100">
+              <Card className="p-3 shadow-sm bg-light h-100"> 
+                {/* --- NEW: Select All Checkbox --- */}
+                <div className="mb-2 pb-2 border-bottom">
+                  <Form.Check 
+                    type="checkbox"
+                    id="select-all"
+                    label={<span className="fw-bold text-primary">Select All Members</span>}
+                    onChange={handleSelectAll}
+                    checked={assignedUsers.length === allUsers.length && allUsers.length > 0} 
+                  />
+                </div>
                 <h5 className="mb-3">Modify Assignments:</h5>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {allUsers.map((user) => (

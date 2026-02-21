@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateTask from './pages/CreateTask';
 import EditTask from './pages/EditTask';
+import ManageUsers from './pages/ManageUsers';
 
 const App = () => {
   // 1. Initialize State from LocalStorage (Memory)
@@ -48,6 +49,7 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/create-task" element={<CreateTask />} />
         <Route path="/edit-task/:id" element={<EditTask />} />
+        <Route path="/manage-users" element={<ManageUsers />} />
       </Routes>
     </Router>
   );

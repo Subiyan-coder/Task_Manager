@@ -44,11 +44,21 @@ const createTask = async (req, res) => {
 // @desc    Get tasks (Filtered by Role Logic)
 // @route   GET /api/tasks
 // @access  Private
+
 const getTasks = async (req, res) => {
   try {
     let tasks;
 
-    if (req.user.role === 'Superior') {
+    // --- NEW: ADMIN OVERRIDE ---
+    if (req.user.role === 'Admin') {
+      // Admin sees absolutely everything in the database
+      tasks = await Task.find({})
+        .populate('assignedTo', 'name email')
+        .populate('createdBy', 'name role')
+        .sort({ createdAt: -1 });
+    }
+
+    else if (req.user.role === 'Superior') {
       // RULE: Superior sees (1) Their own tasks OR (2) Tasks created by Team Members (Self-assigned)
       // They do NOT see tasks created by other Superiors.
       
@@ -80,9 +90,10 @@ const getTasks = async (req, res) => {
   }
 };
 
-// @desc    Update task
+/// @desc    Update task
 // @route   PUT /api/tasks/:id
 // @access  Private
+
 const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id).populate('createdBy'); // Need creator info
@@ -91,13 +102,21 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // PERMISSION CHECK
+    // --- 🚨 ADD THIS: ADMIN GOD MODE OVERRIDE 🚨 ---
+    if (req.user.role === 'Admin') {
+      const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      return res.status(200).json(updatedTask);
+    }
+
+    // Identify if the person making the request is the original creator
+    const isCreator = task.createdBy._id.toString() === req.user.id;
+
+    // --- SUPERIOR LOGIC ---
     if (req.user.role === 'Superior') {
         // Superior can edit if: They created it OR A member created it
-        const isMyTask = task.createdBy._id.toString() === req.user.id;
         const isMemberTask = task.createdBy.role === 'Team Member';
 
-        if (!isMyTask && !isMemberTask) {
+        if (!isCreator && !isMemberTask) {
             return res.status(401).json({ message: 'Cannot edit tasks from other Superiors' });
         }
         
@@ -106,16 +125,25 @@ const updateTask = async (req, res) => {
         return res.status(200).json(updatedTask);
     } 
     
-    // Team Member Logic (Status Only)
-    if (!task.assignedTo.includes(req.user.id)) {
+    // --- TEAM MEMBER LOGIC ---
+    // If they are not assigned to it AND they didn't create it, block them completely
+    if (!task.assignedTo.includes(req.user.id) && !isCreator) {
       return res.status(401).json({ message: 'Not authorized' });
     }
-    if (req.body.status) {
-      task.status = req.body.status;
-      const updatedTask = await task.save();
-      return res.status(200).json(updatedTask);
+
+    if (isCreator) {
+        // IF THE MEMBER CREATED IT: They get full rights to update title/description/status
+        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        return res.status(200).json(updatedTask);
     } else {
-        return res.status(400).json({ message: 'Members can only update status' });
+        // IF THE MEMBER DID NOT CREATE IT (Assigned by Superior): They can ONLY update status
+        if (req.body.status) {
+          task.status = req.body.status;
+          const updatedTask = await task.save();
+          return res.status(200).json(updatedTask);
+        } else {
+            return res.status(400).json({ message: 'Members can only update the status of tasks assigned to them.' });
+        }
     }
 
   } catch (error) {
@@ -135,7 +163,10 @@ const deleteTask = async (req, res) => {
     // PERMISSION CHECK
     let allowed = false;
     
-    if (req.user.role === 'Superior') {
+    // --- NEW: ADMIN OVERRIDE ---
+    if (req.user.role === 'Admin') {
+        allowed = true;
+    } else if (req.user.role === 'Superior') {
         // Allow if MY task or MEMBER task
         if (task.createdBy._id.toString() === req.user.id || task.createdBy.role === 'Team Member') {
             allowed = true;

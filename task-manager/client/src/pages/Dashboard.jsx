@@ -41,8 +41,9 @@ const Dashboard = () => {
       const data = await response.json();
       if (response.ok) setTasks(data);
       
-      // If Superior, fetch users for the filter dropdown
-      if (user?.role === 'Superior') {
+      // If Superior OR Admin, fetch users for the filter dropdown
+
+      if (user?.role === 'Superior' || user?.role === 'Admin') {
         const userRes = await fetch(`${BASE_URL}/api/auth/users`, {
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -72,6 +73,21 @@ const Dashboard = () => {
       completed: tasks.filter(t => t.status === 'Completed').length,
     };
   }, [tasks]);
+ 
+  // --- EXTRACT SUPERIORS FOR MEMBER FILTER ---
+  const uniqueSuperiors = useMemo(() => {
+    if (user?.role === 'Superior' || user?.role === 'Admin') return [];
+    
+    const superiorsMap = new Map();
+    tasks.forEach(t => {
+      if (t.createdBy && t.createdBy.role === 'Superior') {
+        // Store unique ID and Name
+        superiorsMap.set(t.createdBy._id, t.createdBy.name);
+      }
+    });
+    // Convert Map back to array for the dropdown
+    return Array.from(superiorsMap, ([_id, name]) => ({ _id, name }));
+  }, [tasks, user]);
 
   // --- 3. FILTER & SORT LOGIC ---
   const filteredTasks = useMemo(() => {
@@ -92,9 +108,15 @@ const Dashboard = () => {
     // Default Rule: If I am a Member and NO filter is touched, show "In Progress" on the right? 
     // (We will handle visual default in the JSX instead of filtering data out)
 
-    // C. User Filter (Superior only)
+    // C. User Filter (Smart Role Logic)
     if (userFilter !== 'All') {
-      result = result.filter(t => t.assignedTo.some(u => u._id === userFilter));
+      if (user.role === 'Superior' || user.role === 'Admin') {
+        // Superiors filter by who is ASSIGNED the task
+        result = result.filter(t => t.assignedTo.some(u => u._id === userFilter));
+      } else {
+        // Members filter by who CREATED the task (The Superior)
+        result = result.filter(t => t.createdBy && t.createdBy._id === userFilter);
+      }
     }
 
     // D. Sort
@@ -103,7 +125,7 @@ const Dashboard = () => {
       const dateB = new Date(b.createdAt);
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
-  }, [tasks, searchTerm, statusFilter, userFilter, sortOrder]);
+  }, [tasks, searchTerm, statusFilter, userFilter, sortOrder, user.role]);
 
 
   // --- HANDLERS ---
@@ -178,6 +200,11 @@ const Dashboard = () => {
                 <div className="fw-bold">{user.name}</div>
                 <div className="text-muted small" style={{ fontSize: '0.8rem' }}>{user.role}</div>
             </div>
+            {/* ONLY ADMIN SEES THIS BUTTON */}
+            {user.role === 'Admin' && (
+               <Button variant="warning" size="sm" onClick={() => navigate('/manage-users')}>Manage Users</Button>
+            )}
+            
             <Button variant="outline-danger" size="sm" onClick={handleLogout}>Logout</Button>
           </Nav>
         </Container>
@@ -267,7 +294,7 @@ const Dashboard = () => {
                                 
                                 <div className="d-flex flex-column gap-2">
                                     {/* Action Buttons (Edit/Delete) */}
-                                    {(user.role === 'Superior' || task.createdBy === user._id) && (
+                                    {(user.role === 'Admin' || user.role === 'Superior' || (task.createdBy && (task.createdBy._id === user._id || task.createdBy._id === user.id))) && (
                                         <div className="d-flex gap-1 justify-content-end">
                                             <Button variant="light" size="sm" onClick={() => navigate(`/edit-task/${task._id}`)}>✏️</Button>
                                             <Button variant="light" size="sm" className="text-danger" onClick={() => confirmDelete(task._id)}>🗑️</Button>
@@ -326,18 +353,26 @@ const Dashboard = () => {
                         </Form.Select>
                     </Form.Group>
 
-                    {/* Team Filter (Superior Only) */}
-                    {user.role === 'Superior' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label className="small text-muted">Filter by Member</Form.Label>
-                            <Form.Select value={userFilter} onChange={(e) => setUserFilter(e.target.value)}>
-                                <option value="All">All Members</option>
-                                {allUsers.map(u => (
+                    {/* Dynamic Team/Superior Filter */}
+                    <Form.Group className="mb-3">
+                        <Form.Label className="small text-muted">
+                            {user.role === 'Superior' || user.role === 'Admin' ? 'Filter by Member' : 'Filter by Superior'}
+                        </Form.Label>
+                        <Form.Select value={userFilter} onChange={(e) => setUserFilter(e.target.value)}>
+                            <option value="All">
+                                All {user.role === 'Superior' || user.role === 'Admin' ? 'Members' : 'Superiors'}
+                            </option>
+                            
+                            {user.role === 'Superior' || user.role === 'Admin' 
+                                ? allUsers.map(u => (
                                     <option key={u._id} value={u._id}>{u.name}</option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
-                    )}
+                                ))
+                                : uniqueSuperiors.map(s => (
+                                    <option key={s._id} value={s._id}>{s.name}</option>
+                                ))
+                            }
+                        </Form.Select>
+                    </Form.Group>
 
                     {/* Sort Order */}
                     <Form.Group className="mb-3">

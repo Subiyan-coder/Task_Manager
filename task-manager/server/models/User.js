@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['Superior', 'Team Member'], // These are the only two valid roles
+      enum: ['Superior', 'Team Member', 'Admin'], // These are the only two valid roles and the admin is hidden behind the scenes
       default: 'Team Member',
     },
   },

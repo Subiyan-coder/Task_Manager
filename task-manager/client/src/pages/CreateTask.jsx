@@ -33,7 +33,7 @@ const CreateTask = () => {
       }
     };
 
-    if (currentUser && currentUser.role === 'Superior') {
+    if (currentUser && (currentUser.role === 'Superior' || currentUser.role === 'Admin')) {
       fetchUsers();
     }
   }, [currentUser]);
@@ -44,6 +44,18 @@ const CreateTask = () => {
       setAssignedUsers(assignedUsers.filter((id) => id !== userId));
     } else {
       setAssignedUsers([...assignedUsers, userId]);
+    }
+  };
+
+  // --- SELECT ALL LOGIC ---
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // Assuming your list of fetched team members is stored in a state called 'allUsers'
+      const allMemberIds = allUsers.map(u => u._id);
+      setAssignedUsers(allMemberIds); 
+    } else {
+      // Uncheck box = clear the array
+      setAssignedUsers([]);
     }
   };
 
@@ -61,7 +73,7 @@ const CreateTask = () => {
         body: JSON.stringify({ 
           title, 
           description, 
-          assignedTo: currentUser.role === 'Superior' ? assignedUsers : [] 
+          assignedTo: (currentUser.role === 'Superior' || currentUser.role === 'Admin') ? assignedUsers : [] 
         }),
       });
 
@@ -86,7 +98,7 @@ const CreateTask = () => {
       <Form onSubmit={submitHandler}>
         <Row>
           {/* LEFT COLUMN: Task Details */}
-          <Col md={currentUser?.role === 'Superior' ? 8 : 12}>
+          <Col md={currentUser?.role === 'Superior' || currentUser?.role === 'Admin' ? 8 : 12}>
             <Card className="p-4 shadow-sm">
               <Form.Group className="mb-3">
                 <Form.Label>Task Title</Form.Label>
@@ -120,24 +132,38 @@ const CreateTask = () => {
             </Card>
           </Col>
 
-          {/* RIGHT COLUMN: User List (Superior Only) */}
-          {currentUser?.role === 'Superior' && (
+          {/* RIGHT COLUMN: User List (Superior & Admin) */}
+          {(currentUser?.role === 'Superior' || currentUser?.role === 'Admin') && (
             <Col md={4}>
               <Card className="p-3 shadow-sm bg-light h-100">
                 <h5 className="mb-3">Assign To:</h5>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {allUsers.length > 0 ? (
-                    allUsers.map((user) => (
-                      <Form.Check 
-                        key={user._id}
-                        type="checkbox"
-                        id={`user-${user._id}`}
-                        label={`${user.name} (${user.role})`}
-                        className="mb-2"
-                        checked={assignedUsers.includes(user._id)}
-                        onChange={() => handleUserSelect(user._id)}
-                      />
-                    ))
+                    <>
+                      {/* --- NEW: Select All Checkbox --- */}
+                      <div className="mb-2 pb-2 border-bottom">
+                        <Form.Check 
+                          type="checkbox"
+                          id="select-all"
+                          label={<span className="fw-bold text-primary">Select All Members</span>}
+                          onChange={handleSelectAll}
+                          checked={assignedUsers.length === allUsers.length && allUsers.length > 0} 
+                        />
+                      </div>
+
+                      {/* Your existing individual user mapping */}
+                      {allUsers.map((user) => (
+                        <Form.Check 
+                          key={user._id}
+                          type="checkbox"
+                          id={`user-${user._id}`}
+                          label={`${user.name} (${user.role})`}
+                          className="mb-2"
+                          checked={assignedUsers.includes(user._id)}
+                          onChange={() => handleUserSelect(user._id)}
+                        />
+                      ))}
+                    </>
                   ) : (
                     <p className="text-muted">Loading users...</p>
                   )}

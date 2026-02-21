@@ -68,7 +68,10 @@ const Register = () => {
 
             <Form.Group className="mb-4">
               <Form.Label>I am a...</Form.Label>
-              <Form.Select value={role} onChange={(e) => setRole(e.target.value)}>
+              <Form.Select 
+                value={role} 
+                onChange={(e) => setRole(e.target.value)}
+              >
                 <option value="Team Member">Team Member</option>
                 <option value="Superior">Superior (Manager)</option>
               </Form.Select>
